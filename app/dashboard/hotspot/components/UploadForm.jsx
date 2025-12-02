@@ -308,30 +308,20 @@ export default function UploadForm({ onSubmitSuccess }) {
           </div>
         )}
 
-        {/* Location */}
-        {locationDenied && (
-          <p className="text-yellow-400 text-sm">{STRINGS.locationDenied}</p>
+        {/* Location Status */}
+        {locationDenied ? (
+          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 text-sm text-yellow-400">
+            ⚠️ Location access denied. Please enable location services to submit hotspots.
+          </div>
+        ) : lat && lon ? (
+          <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-sm text-green-400">
+            ✓ Location detected successfully
+          </div>
+        ) : (
+          <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-3 text-sm text-blue-400">
+            📍 Detecting your location...
+          </div>
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="number"
-            step="any"
-            value={lat}
-            onChange={(e) => setLat(e.target.value)}
-            placeholder="Latitude"
-            className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-purple-500"
-            aria-label="Latitude"
-          />
-          <input
-            type="number"
-            step="any"
-            value={lon}
-            onChange={(e) => setLon(e.target.value)}
-            placeholder="Longitude"
-            className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white outline-none focus:ring-2 focus:ring-purple-500"
-            aria-label="Longitude"
-          />
-        </div>
 
         {/* Actions */}
         <div className="flex gap-2">
@@ -365,15 +355,27 @@ export default function UploadForm({ onSubmitSuccess }) {
 
         {/* Detection Results */}
         {detections.length > 0 && (
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-            <h3 className="font-bold text-white mb-2">{STRINGS.detectionResults}</h3>
-            <ul className="space-y-1">
+          <div className="bg-gradient-to-br from-green-900/30 to-blue-900/30 border-2 border-green-500/50 rounded-lg p-4">
+            <h3 className="font-bold text-green-400 mb-3 text-lg flex items-center gap-2">
+              <span>✅</span> {STRINGS.detectionResults} ({detections.length} found)
+            </h3>
+            <div className="grid grid-cols-1 gap-2">
               {detections.map((det, i) => (
-                <li key={i} className="text-sm text-gray-300">
-                  {det.label} - {(det.confidence * 100).toFixed(1)}% confidence
-                </li>
+                <div key={i} className="bg-gray-800/70 border border-gray-600 rounded-lg p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🗑️</span>
+                    <div>
+                      <div className="font-semibold text-white">{det.label}</div>
+                      <div className="text-xs text-gray-400">Detection #{i + 1}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-green-400">{(det.confidence * 100).toFixed(1)}%</div>
+                    <div className="text-xs text-gray-400">confidence</div>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
       </div>

@@ -16,11 +16,15 @@ function AnimatedSmog({ aqi }) {
   
   if (aqi < 50) return null;
   
+  const particleCount = Math.floor(aqi / 5);
+  const smogColor = aqi < 100 ? '#d4d4d4' : aqi < 150 ? '#a8a8a8' : aqi < 200 ? '#7a7a7a' : '#4a4a4a';
+  const smogOpacity = aqi < 100 ? 0.2 : aqi < 150 ? 0.35 : aqi < 200 ? 0.5 : 0.65;
+  
   return (
     <group ref={ref}>
-      {[...Array(20)].map((_, i) => (
-        <Sphere key={i} args={[0.5, 16, 16]} position={[(Math.random() - 0.5) * 15, Math.random() * 3, (Math.random() - 0.5) * 15]}>
-          <meshStandardMaterial color={aqi < 100 ? '#cccccc' : aqi < 150 ? '#999999' : '#666666'} transparent opacity={0.3} />
+      {[...Array(particleCount)].map((_, i) => (
+        <Sphere key={i} args={[0.3 + Math.random() * 0.4, 12, 12]} position={[(Math.random() - 0.5) * 20, Math.random() * 4 + 1, (Math.random() - 0.5) * 20]}>
+          <meshStandardMaterial color={smogColor} transparent opacity={smogOpacity} emissive={smogColor} emissiveIntensity={aqi > 150 ? 0.1 : 0} />
         </Sphere>
       ))}
     </group>
@@ -163,15 +167,18 @@ function Car({ startZ, lane, color, speed, direction }) {
 function City({ aqi, garbage }) {
   const buildingColor = garbage < 30 ? '#808080' : garbage < 60 ? '#706050' : '#604030';
   const groundColor = garbage < 30 ? '#90EE90' : garbage < 60 ? '#8B7355' : '#654321';
-  const skyColor = aqi < 100 ? '#87CEEB' : aqi < 150 ? '#B0C4DE' : '#778899';
+  const skyColor = aqi < 50 ? '#87CEEB' : aqi < 100 ? '#B0C4DE' : aqi < 150 ? '#9BA8B8' : aqi < 200 ? '#7a8899' : '#5a6a7a';
+  const fogColor = aqi < 50 ? '#ffffff' : aqi < 100 ? '#e8e8e8' : aqi < 150 ? '#c8c8c8' : aqi < 200 ? '#a0a0a0' : '#707070';
+  const fogDensity = aqi < 50 ? 60 : aqi < 100 ? 45 : aqi < 150 ? 30 : aqi < 200 ? 20 : 12;
+  const visibility = aqi < 50 ? 1 : aqi < 100 ? 0.85 : aqi < 150 ? 0.6 : aqi < 200 ? 0.4 : 0.25;
   
   return (
     <>
-      <Sky sunPosition={[100, 20, 100]} turbidity={aqi / 30} rayleigh={aqi / 100} />
-      <fog attach="fog" args={[aqi < 100 ? '#ffffff' : aqi < 150 ? '#cccccc' : '#999999', 10, aqi < 100 ? 50 : 30]} />
-      <ambientLight intensity={aqi < 100 ? 0.6 : 0.3} />
-      <directionalLight position={[10, 10, 5]} intensity={aqi < 100 ? 1.2 : 0.5} castShadow shadowMapSize={[2048, 2048]} />
-      <hemisphereLight args={[skyColor, groundColor, 0.5]} />
+      <Sky sunPosition={[100, 20, 100]} turbidity={aqi / 20} rayleigh={aqi / 80} />
+      <fog attach="fog" args={[fogColor, 5, fogDensity]} />
+      <ambientLight intensity={aqi < 50 ? 0.7 : aqi < 100 ? 0.55 : aqi < 150 ? 0.4 : aqi < 200 ? 0.25 : 0.15} color={fogColor} />
+      <directionalLight position={[10, 10, 5]} intensity={aqi < 50 ? 1.5 : aqi < 100 ? 1.0 : aqi < 150 ? 0.6 : aqi < 200 ? 0.35 : 0.2} castShadow shadowMapSize={[2048, 2048]} color={fogColor} />
+      <hemisphereLight args={[skyColor, groundColor, aqi < 100 ? 0.6 : aqi < 150 ? 0.4 : 0.2]} />
       <Environment preset="city" />
       
       <AnimatedSmog aqi={aqi} />
@@ -557,15 +564,7 @@ function City({ aqi, garbage }) {
   );
 }
 
-function Arrow({ start, end, color }) {
-  const direction = new THREE.Vector3().subVectors(end, start);
-  const length = direction.length();
-  return (
-    <group position={start}>
-      <arrowHelper args={[direction.normalize(), new THREE.Vector3(0, 0, 0), length, color, 0.2, 0.15]} />
-    </group>
-  );
-}
+
 
 function HumanDetailed({ aqi, garbage }) {
   const skinColor = aqi < 50 && garbage < 30 ? '#ffdbac' : aqi < 100 && garbage < 60 ? '#e8c4a0' : aqi < 150 ? '#d4a574' : aqi < 200 ? '#b88a5c' : '#8b6f47';
@@ -768,6 +767,10 @@ function PlayingChild({ position, aqi, garbage, action }) {
 
 function Human({ aqi, garbage, onClick }) {
   const ref = useRef();
+  const leftLegRef = useRef();
+  const rightLegRef = useRef();
+  const leftArmRef = useRef();
+  const rightArmRef = useRef();
   const skinColor = aqi < 50 && garbage < 30 ? '#ffdbac' : aqi < 100 && garbage < 60 ? '#e8c4a0' : aqi < 150 ? '#d4a574' : aqi < 200 ? '#b88a5c' : '#8b6f47';
   const lungsColor = aqi < 50 ? '#ff9999' : aqi < 100 ? '#ff6666' : aqi < 150 ? '#cc3333' : aqi < 200 ? '#990000' : '#660000';
   const heartColor = aqi < 50 && garbage < 30 ? '#ff0000' : aqi < 100 ? '#cc0000' : '#990000';
@@ -778,13 +781,35 @@ function Human({ aqi, garbage, onClick }) {
   const scale = aqi < 50 && garbage < 30 ? 1 : aqi < 100 && garbage < 60 ? 0.98 : aqi < 150 ? 0.92 : aqi < 200 ? 0.85 : 0.75;
   
   useFrame((state) => {
-    if (ref.current && aqi > 100) {
-      ref.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.05;
+    const t = state.clock.elapsedTime;
+    const walkSpeed = 2.5;
+    const walkCycle = Math.sin(t * walkSpeed);
+    
+    if (ref.current) {
+      // Walk in straight line along sidewalk
+      ref.current.position.x = -15 + (t * 0.3) % 30;
+      // Slight vertical bob while walking
+      ref.current.position.y = 0.5 + Math.abs(Math.sin(t * walkSpeed * 2)) * 0.03;
+      // Face forward
+      ref.current.rotation.y = Math.PI / 2;
+    }
+    
+    if (leftLegRef.current) {
+      leftLegRef.current.rotation.x = walkCycle * 0.5;
+    }
+    if (rightLegRef.current) {
+      rightLegRef.current.rotation.x = -walkCycle * 0.5;
+    }
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.x = -walkCycle * 0.35;
+    }
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.x = walkCycle * 0.35;
     }
   });
   
   return (
-    <group ref={ref} position={[8, 1, 8]} rotation={[0, Math.PI * 0.5, 0]} scale={scale}>
+    <group ref={ref} position={[0, 0.5, 6.3]} rotation={[0, Math.PI * 0.5, 0]} scale={scale * 0.5}>
       {/* Head - more realistic shape */}
       <group position={[0, 1.6, 0]}>
         <Sphere args={[0.38, 32, 32]} scale={[0.95, 1.1, 1]}>
@@ -924,113 +949,121 @@ function Human({ aqi, garbage, onClick }) {
       {/* Legs with pants - more realistic */}
       <group>
         {/* Left leg */}
-        <Cylinder args={[0.14, 0.12, 0.52, 20]} position={[-0.19, 0.66, 0]}>
-          <meshStandardMaterial color={pantsColor} roughness={0.75} />
-        </Cylinder>
-        <Sphere args={[0.13, 16, 16]} position={[-0.19, 0.4, 0]}>
-          <meshStandardMaterial color={pantsColor} />
-        </Sphere>
-        <Cylinder args={[0.12, 0.1, 0.52, 20]} position={[-0.19, 0.14, 0]}>
-          <meshStandardMaterial color={pantsColor} roughness={0.75} />
-        </Cylinder>
+        <group ref={leftLegRef} position={[-0.19, 0.4, 0]}>
+          <Cylinder args={[0.14, 0.12, 0.52, 20]} position={[0, 0.26, 0]}>
+            <meshStandardMaterial color={pantsColor} roughness={0.75} />
+          </Cylinder>
+          <Sphere args={[0.13, 16, 16]} position={[0, 0, 0]}>
+            <meshStandardMaterial color={pantsColor} />
+          </Sphere>
+          <Cylinder args={[0.12, 0.1, 0.52, 20]} position={[0, -0.26, 0]}>
+            <meshStandardMaterial color={pantsColor} roughness={0.75} />
+          </Cylinder>
+          {/* Left foot */}
+          <group position={[0, -0.48, 0]}>
+            <Box args={[0.14, 0.1, 0.26]} position={[0, 0, 0.06]}>
+              <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
+            </Box>
+            <Sphere args={[0.08, 16, 16]} position={[0, 0, 0.15]} scale={[1, 0.8, 1.2]}>
+              <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
+            </Sphere>
+          </group>
+        </group>
         
         {/* Right leg */}
-        <Cylinder args={[0.14, 0.12, 0.52, 20]} position={[0.19, 0.66, 0]}>
-          <meshStandardMaterial color={pantsColor} roughness={0.75} />
-        </Cylinder>
-        <Sphere args={[0.13, 16, 16]} position={[0.19, 0.4, 0]}>
-          <meshStandardMaterial color={pantsColor} />
-        </Sphere>
-        <Cylinder args={[0.12, 0.1, 0.52, 20]} position={[0.19, 0.14, 0]}>
-          <meshStandardMaterial color={pantsColor} roughness={0.75} />
-        </Cylinder>
-      </group>
-      
-      {/* Feet - more realistic shoes */}
-      <group position={[-0.19, -0.08, 0]}>
-        <Box args={[0.14, 0.1, 0.26]} position={[0, 0, 0.06]}>
-          <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
-        </Box>
-        <Sphere args={[0.08, 16, 16]} position={[0, 0, 0.15]} scale={[1, 0.8, 1.2]}>
-          <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
-        </Sphere>
-      </group>
-      <group position={[0.19, -0.08, 0]}>
-        <Box args={[0.14, 0.1, 0.26]} position={[0, 0, 0.06]}>
-          <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
-        </Box>
-        <Sphere args={[0.08, 16, 16]} position={[0, 0, 0.15]} scale={[1, 0.8, 1.2]}>
-          <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
-        </Sphere>
+        <group ref={rightLegRef} position={[0.19, 0.4, 0]}>
+          <Cylinder args={[0.14, 0.12, 0.52, 20]} position={[0, 0.26, 0]}>
+            <meshStandardMaterial color={pantsColor} roughness={0.75} />
+          </Cylinder>
+          <Sphere args={[0.13, 16, 16]} position={[0, 0, 0]}>
+            <meshStandardMaterial color={pantsColor} />
+          </Sphere>
+          <Cylinder args={[0.12, 0.1, 0.52, 20]} position={[0, -0.26, 0]}>
+            <meshStandardMaterial color={pantsColor} roughness={0.75} />
+          </Cylinder>
+          {/* Right foot */}
+          <group position={[0, -0.48, 0]}>
+            <Box args={[0.14, 0.1, 0.26]} position={[0, 0, 0.06]}>
+              <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
+            </Box>
+            <Sphere args={[0.08, 16, 16]} position={[0, 0, 0.15]} scale={[1, 0.8, 1.2]}>
+              <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
+            </Sphere>
+          </group>
+        </group>
       </group>
       
       {/* Arms - more realistic */}
       <group>
         {/* Left arm */}
-        <Cylinder args={[0.11, 0.1, 0.48, 20]} position={[-0.52, 1.02, 0]} rotation={[0, 0, 0.35]}>
-          <meshStandardMaterial color={shirtColor} roughness={0.6} />
-        </Cylinder>
-        <Sphere args={[0.11, 16, 16]} position={[-0.62, 0.8, 0]}>
-          <meshStandardMaterial color={shirtColor} />
-        </Sphere>
-        <Cylinder args={[0.1, 0.09, 0.42, 20]} position={[-0.72, 0.58, 0]} rotation={[0, 0, 0.25]}>
-          <meshStandardMaterial color={skinColor} roughness={0.3} />
-        </Cylinder>
-        <Sphere args={[0.09, 16, 16]} position={[-0.82, 0.38, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Sphere>
-        {/* Left hand */}
-        <Box args={[0.08, 0.12, 0.06]} position={[-0.88, 0.28, 0]}>
-          <meshStandardMaterial color={skinColor} roughness={0.3} />
-        </Box>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.88, 0.18, 0.02]} rotation={[0.3, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.88, 0.18, 0.01]} rotation={[0.2, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.88, 0.18, 0]} rotation={[0.1, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.88, 0.18, -0.01]} rotation={[0, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.012, 0.012, 0.05, 8]} position={[-0.88, 0.22, 0.03]} rotation={[1, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
+        <group ref={leftArmRef} position={[-0.52, 1.02, 0]}>
+          <Cylinder args={[0.11, 0.1, 0.48, 20]} position={[0, 0, 0]} rotation={[0, 0, 0.35]}>
+            <meshStandardMaterial color={shirtColor} roughness={0.6} />
+          </Cylinder>
+          <Sphere args={[0.11, 16, 16]} position={[-0.1, -0.22, 0]}>
+            <meshStandardMaterial color={shirtColor} />
+          </Sphere>
+          <Cylinder args={[0.1, 0.09, 0.42, 20]} position={[-0.2, -0.44, 0]} rotation={[0, 0, 0.25]}>
+            <meshStandardMaterial color={skinColor} roughness={0.3} />
+          </Cylinder>
+          <Sphere args={[0.09, 16, 16]} position={[-0.3, -0.64, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Sphere>
+          {/* Left hand */}
+          <Box args={[0.08, 0.12, 0.06]} position={[-0.36, -0.74, 0]}>
+            <meshStandardMaterial color={skinColor} roughness={0.3} />
+          </Box>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.36, -0.84, 0.02]} rotation={[0.3, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.36, -0.84, 0.01]} rotation={[0.2, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.36, -0.84, 0]} rotation={[0.1, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[-0.36, -0.84, -0.01]} rotation={[0, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.012, 0.012, 0.05, 8]} position={[-0.36, -0.8, 0.03]} rotation={[1, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+        </group>
         
         {/* Right arm */}
-        <Cylinder args={[0.11, 0.1, 0.48, 20]} position={[0.52, 1.02, 0]} rotation={[0, 0, -0.35]}>
-          <meshStandardMaterial color={shirtColor} roughness={0.6} />
-        </Cylinder>
-        <Sphere args={[0.11, 16, 16]} position={[0.62, 0.8, 0]}>
-          <meshStandardMaterial color={shirtColor} />
-        </Sphere>
-        <Cylinder args={[0.1, 0.09, 0.42, 20]} position={[0.72, 0.58, 0]} rotation={[0, 0, -0.25]}>
-          <meshStandardMaterial color={skinColor} roughness={0.3} />
-        </Cylinder>
-        <Sphere args={[0.09, 16, 16]} position={[0.82, 0.38, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Sphere>
-        {/* Right hand */}
-        <Box args={[0.08, 0.12, 0.06]} position={[0.88, 0.28, 0]}>
-          <meshStandardMaterial color={skinColor} roughness={0.3} />
-        </Box>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.88, 0.18, 0.02]} rotation={[0.3, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.88, 0.18, 0.01]} rotation={[0.2, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.88, 0.18, 0]} rotation={[0.1, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.88, 0.18, -0.01]} rotation={[0, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
-        <Cylinder args={[0.012, 0.012, 0.05, 8]} position={[0.88, 0.22, 0.03]} rotation={[1, 0, 0]}>
-          <meshStandardMaterial color={skinColor} />
-        </Cylinder>
+        <group ref={rightArmRef} position={[0.52, 1.02, 0]}>
+          <Cylinder args={[0.11, 0.1, 0.48, 20]} position={[0, 0, 0]} rotation={[0, 0, -0.35]}>
+            <meshStandardMaterial color={shirtColor} roughness={0.6} />
+          </Cylinder>
+          <Sphere args={[0.11, 16, 16]} position={[0.1, -0.22, 0]}>
+            <meshStandardMaterial color={shirtColor} />
+          </Sphere>
+          <Cylinder args={[0.1, 0.09, 0.42, 20]} position={[0.2, -0.44, 0]} rotation={[0, 0, -0.25]}>
+            <meshStandardMaterial color={skinColor} roughness={0.3} />
+          </Cylinder>
+          <Sphere args={[0.09, 16, 16]} position={[0.3, -0.64, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Sphere>
+          {/* Right hand */}
+          <Box args={[0.08, 0.12, 0.06]} position={[0.36, -0.74, 0]}>
+            <meshStandardMaterial color={skinColor} roughness={0.3} />
+          </Box>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.36, -0.84, 0.02]} rotation={[0.3, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.36, -0.84, 0.01]} rotation={[0.2, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.36, -0.84, 0]} rotation={[0.1, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.015, 0.015, 0.08, 8]} position={[0.36, -0.84, -0.01]} rotation={[0, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+          <Cylinder args={[0.012, 0.012, 0.05, 8]} position={[0.36, -0.8, 0.03]} rotation={[1, 0, 0]}>
+            <meshStandardMaterial color={skinColor} />
+          </Cylinder>
+        </group>
       </group>
       
       {/* Coughing particles */}
@@ -1051,10 +1084,6 @@ function Human({ aqi, garbage, onClick }) {
       {/* 3D Health effect visualization */}
       {aqi > 50 && (
         <>
-          <Arrow start={new THREE.Vector3(1.3, 1, 0)} end={new THREE.Vector3(0.15, 1.05, 0.2)} color={lungsColor} />
-          <Arrow start={new THREE.Vector3(1.3, 0.95, 0)} end={new THREE.Vector3(0, 0.95, 0.25)} color={heartColor} />
-          <Arrow start={new THREE.Vector3(1.3, 1.65, 0)} end={new THREE.Vector3(0.13, 1.65, 0.35)} color={aqi > 150 ? '#ff0000' : '#2a4d69'} />
-          
           {/* Pollution cloud around person */}
           <Sphere args={[1.2, 24, 24]} position={[0, 1, 0]}>
             <meshStandardMaterial 
@@ -1218,18 +1247,61 @@ export default function SimulationPage() {
             
             <div className="space-y-3">
               <div>
-                <label className="text-gray-300 text-sm mb-2 block">Air Quality Index (AQI): {aqi}</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-gray-300 text-sm font-semibold">Air Quality Index</label>
+                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                    aqi < 50 ? 'bg-green-500 text-white' :
+                    aqi < 100 ? 'bg-yellow-500 text-black' :
+                    aqi < 150 ? 'bg-orange-500 text-white' :
+                    aqi < 200 ? 'bg-red-500 text-white' :
+                    aqi < 300 ? 'bg-purple-600 text-white' :
+                    'bg-red-900 text-white'
+                  }`}>
+                    {aqi}
+                  </div>
+                </div>
                 <input
                   type="range"
                   min="0"
                   max="300"
                   value={aqi}
                   onChange={(e) => setAqi(parseInt(e.target.value))}
-                  className="w-full"
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, 
+                      #22c55e 0%, #22c55e 16.67%, 
+                      #eab308 16.67%, #eab308 33.33%, 
+                      #f97316 33.33%, #f97316 50%, 
+                      #ef4444 50%, #ef4444 66.67%, 
+                      #9333ea 66.67%, #9333ea 83.33%, 
+                      #7f1d1d 83.33%, #7f1d1d 100%)`
+                  }}
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Good</span>
-                  <span>Hazardous</span>
+                <div className="grid grid-cols-6 gap-1 text-xs mt-2">
+                  <div className="text-center">
+                    <div className="w-full h-1 bg-green-500 rounded mb-1"></div>
+                    <div className="text-gray-400">0-50<br/>Good</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full h-1 bg-yellow-500 rounded mb-1"></div>
+                    <div className="text-gray-400">51-100<br/>Moderate</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full h-1 bg-orange-500 rounded mb-1"></div>
+                    <div className="text-gray-400">101-150<br/>Unhealthy</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full h-1 bg-red-500 rounded mb-1"></div>
+                    <div className="text-gray-400">151-200<br/>Very Bad</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full h-1 bg-purple-600 rounded mb-1"></div>
+                    <div className="text-gray-400">201-300<br/>Severe</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full h-1 bg-red-900 rounded mb-1"></div>
+                    <div className="text-gray-400">300+<br/>Hazardous</div>
+                  </div>
                 </div>
               </div>
 

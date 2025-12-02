@@ -1,19 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 
 export default function RewardsPage() {
+  const { data: session, update } = useSession();
   const [rewards, setRewards] = useState([]);
-  const [user, setUser] = useState(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    if (session?.user) {
       fetchRewards();
     }
-  }, []);
+  }, [session]);
 
   const fetchRewards = async () => {
     try {
@@ -27,7 +26,9 @@ export default function RewardsPage() {
   };
 
   const handleRedeem = async (rewardId, pointsRequired) => {
-    if (user.rewardPoints < pointsRequired) {
+    if (!session?.user?.email) return;
+    
+    if (session.user.rewardPoints < pointsRequired) {
       setMessage('Insufficient points!');
       return;
     }
@@ -38,15 +39,13 @@ export default function RewardsPage() {
       const res = await fetch('/api/rewards/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user._id, rewardId })
+        body: JSON.stringify({ email: session.user.email, rewardId })
       });
       const data = await res.json();
       
       if (data.success) {
         setMessage('Reward redeemed successfully!');
-        user.rewardPoints = data.remainingPoints;
-        localStorage.setItem('user', JSON.stringify(user));
-        setUser({...user});
+        await update();
         fetchRewards();
       } else {
         setMessage(data.error);
@@ -60,7 +59,7 @@ export default function RewardsPage() {
     <div className="max-w-6xl mx-auto">
       <div className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6">
         <h2 className="text-2xl font-bold text-white mb-2">My Reward Points</h2>
-        <p className="text-4xl font-bold text-white">{user?.rewardPoints || 0} Points</p>
+        <p className="text-4xl font-bold text-white">{session?.user?.rewardPoints || 0} Points</p>
       </div>
 
       {message && (
@@ -86,10 +85,10 @@ export default function RewardsPage() {
             </div>
             <button
               onClick={() => handleRedeem(reward._id, reward.pointsRequired)}
-              disabled={user?.rewardPoints < reward.pointsRequired || reward.stock < 1}
+              disabled={session?.user?.rewardPoints < reward.pointsRequired || reward.stock < 1}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {reward.stock < 1 ? 'Out of Stock' : user?.rewardPoints < reward.pointsRequired ? 'Insufficient Points' : 'Redeem'}
+              {reward.stock < 1 ? 'Out of Stock' : session?.user?.rewardPoints < reward.pointsRequired ? 'Insufficient Points' : 'Redeem'}
             </button>
           </div>
           ))}
