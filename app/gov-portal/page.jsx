@@ -9,7 +9,10 @@ export default function GovPortal() {
   const [user, setUser] = useState(null);
   const [section, setSection] = useState('hotspots');
   const [hotspots, setHotspots] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState('pending');
+  const [requestFilter, setRequestFilter] = useState('pending');
+  const [mapView, setMapView] = useState('hotspots');
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(null);
 
@@ -29,6 +32,28 @@ export default function GovPortal() {
   useEffect(() => {
     if (user) fetchHotspots();
   }, [user, filter]);
+
+  useEffect(() => {
+    if (user) fetchRequests();
+  }, [user, requestFilter]);
+
+  const fetchRequests = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (requestFilter !== 'all') params.append('status', requestFilter);
+      
+      const url = `/api/garbage-requests/list?${params.toString()}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setRequests(data.requests || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchHotspots = async () => {
     if (!user) return;
@@ -94,7 +119,7 @@ export default function GovPortal() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-2 mb-8 bg-gray-900/50 rounded-lg shadow-lg p-2 backdrop-blur-sm border border-gray-800">
-          {['hotspots', 'map', 'stats'].map((s) => (
+          {['hotspots', 'requests', 'map', 'stats'].map((s) => (
             <button
               key={s}
               onClick={() => setSection(s)}
@@ -102,7 +127,7 @@ export default function GovPortal() {
                 section === s ? 'bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg shadow-green-500/50' : 'text-gray-400 hover:text-white'
               }`}
             >
-              {s === 'hotspots' ? 'Hotspots' : s === 'map' ? 'Map View' : 'Statistics'}
+              {s === 'hotspots' ? 'Hotspots' : s === 'requests' ? 'Collection Requests' : s === 'map' ? 'Map View' : 'Statistics'}
             </button>
           ))}
         </div>
@@ -182,8 +207,78 @@ export default function GovPortal() {
 
         {section === 'map' && (
           <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl p-6 animate-fade-in">
-            <h2 className="text-2xl font-bold text-white mb-4">Hotspot Map</h2>
-            <GoogleMap hotspots={hotspots} />
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-white">Map View</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMapView('hotspots')}
+                  className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                    mapView === 'hotspots' ? 'bg-gradient-to-r from-green-600 to-teal-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Hotspots
+                </button>
+                <button
+                  onClick={() => setMapView('requests')}
+                  className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                    mapView === 'requests' ? 'bg-gradient-to-r from-green-600 to-teal-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Collection Requests
+                </button>
+              </div>
+            </div>
+            <GoogleMap hotspots={mapView === 'hotspots' ? hotspots : []} requests={mapView === 'requests' ? requests : []} />
+          </div>
+        )}
+
+        {section === 'requests' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex gap-2 mb-4">
+              {['all', 'pending', 'approved', 'completed'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setRequestFilter(status)}
+                  className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                    requestFilter === status
+                      ? 'bg-gradient-to-r from-green-600 to-teal-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-green-500 mx-auto"></div>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {requests.map((req) => (
+                  <div key={req._id} className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl p-6 hover:border-green-500/50 transition-all duration-300">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-lg mb-2 text-white">{req.eventType}</h3>
+                        <p className="text-sm text-gray-400">{req.description}</p>
+                        <p className="text-sm text-gray-400 mt-2">📍 {req.address || `${req.latitude?.toFixed(4)}, ${req.longitude?.toFixed(4)}`}</p>
+                        <p className="text-sm text-gray-400">📅 {new Date(req.createdAt).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                          req.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                          req.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                          'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

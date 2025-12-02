@@ -15,6 +15,11 @@ export default function AdminPanel() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [govUsers, setGovUsers] = useState([]);
+  const [rewardName, setRewardName] = useState('');
+  const [rewardDesc, setRewardDesc] = useState('');
+  const [rewardPoints, setRewardPoints] = useState('');
+  const [rewardStock, setRewardStock] = useState('');
+  const [rewardMsg, setRewardMsg] = useState('');
 
   useEffect(() => {
     const userData = localStorage.getItem('admin');
@@ -96,7 +101,7 @@ export default function AdminPanel() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl p-8">
             <h2 className="text-2xl font-bold text-white mb-6 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Create Government User</h2>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -209,6 +214,88 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg shadow-2xl p-8">
+            <h2 className="text-2xl font-bold text-white mb-6 bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">Create Reward</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const res = await fetch('/api/admin/rewards/create', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: rewardName,
+                    description: rewardDesc,
+                    pointsRequired: parseInt(rewardPoints),
+                    stock: parseInt(rewardStock)
+                  })
+                });
+                const data = await res.json();
+                setRewardMsg(data.success ? 'Reward created!' : data.error);
+                if (data.success) {
+                  setRewardName('');
+                  setRewardDesc('');
+                  setRewardPoints('');
+                  setRewardStock('');
+                }
+              } catch (err) {
+                setRewardMsg('Error creating reward');
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Reward Name</label>
+                <input
+                  type="text"
+                  value={rewardName}
+                  onChange={(e) => setRewardName(e.target.value)}
+                  placeholder="Eco-friendly Water Bottle"
+                  className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                <textarea
+                  value={rewardDesc}
+                  onChange={(e) => setRewardDesc(e.target.value)}
+                  placeholder="Reusable stainless steel bottle"
+                  className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none text-white"
+                  rows="3"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Points Required</label>
+                <input
+                  type="number"
+                  value={rewardPoints}
+                  onChange={(e) => setRewardPoints(e.target.value)}
+                  placeholder="500"
+                  className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Stock</label>
+                <input
+                  type="number"
+                  value={rewardStock}
+                  onChange={(e) => setRewardStock(e.target.value)}
+                  placeholder="50"
+                  className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none text-white"
+                  required
+                />
+              </div>
+              <button type="submit" className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white py-2 rounded-lg font-semibold hover:from-yellow-700 hover:to-orange-700 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-yellow-500/50">
+                Create Reward
+              </button>
+            </form>
+            {rewardMsg && (
+              <div className={`mt-4 p-3 rounded-lg text-sm ${rewardMsg.includes('Error') ? 'bg-red-500/20 border border-red-500/50 text-red-400' : 'bg-green-500/20 border border-green-500/50 text-green-400'}`}>
+                {rewardMsg}
+              </div>
+            )}
           </div>
         </div>
       </div>

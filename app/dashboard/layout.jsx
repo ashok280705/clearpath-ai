@@ -40,35 +40,54 @@ export default function DashboardLayout({ children }) {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex gap-2 mb-8 bg-gray-900/50 rounded-lg shadow-lg p-2 backdrop-blur-sm border border-gray-800">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-              pathname === '/dashboard' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/50' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Home
-          </button>
-          <button
-            onClick={() => router.push('/dashboard/hotspot')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-              pathname === '/dashboard/hotspot' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/50' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Report Hotspot
-          </button>
-          <button
-            onClick={() => router.push('/dashboard/rewards')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-              pathname === '/dashboard/rewards' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/50' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            My Rewards
-          </button>
-        </div>
-
-        {children}
+      <div className="flex">
+        <aside className="w-64 min-h-screen bg-gray-900/50 border-r border-gray-800 p-4">
+          <nav className="space-y-2">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 ${
+                pathname === '/dashboard' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              🏠 Home
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/hotspot')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 ${
+                pathname === '/dashboard/hotspot' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              📍 Report Hotspot
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/garbage-request')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 ${
+                pathname === '/dashboard/garbage-request' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              🗑️ Request Collection
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/notifications')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 ${
+                pathname === '/dashboard/notifications' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              🔔 Daily Updates
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/rewards')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 ${
+                pathname === '/dashboard/rewards' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              🎁 Rewards
+            </button>
+          </nav>
+        </aside>
+        <main className="flex-1 p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

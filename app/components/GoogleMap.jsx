@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export default function GoogleMap({ hotspots }) {
+export default function GoogleMap({ hotspots = [], requests = [] }) {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
@@ -32,10 +32,10 @@ export default function GoogleMap({ hotspots }) {
   }, []);
 
   useEffect(() => {
-    if (map && hotspots) {
+    if (map) {
       updateMarkers();
     }
-  }, [map, hotspots]);
+  }, [map, hotspots, requests]);
 
   const initMap = () => {
     if (!mapRef.current || !window.google) return;
@@ -90,8 +90,10 @@ export default function GoogleMap({ hotspots }) {
     // Clear existing markers
     markers.forEach(marker => marker.setMap(null));
 
-    // Create new markers
-    const newMarkers = hotspots.map((hotspot) => {
+    const allMarkers = [];
+
+    // Create hotspot markers
+    hotspots.forEach((hotspot) => {
       const markerColor = 
         hotspot.status === 'pending' ? '#EAB308' :
         hotspot.status === 'verified' ? '#10B981' :
@@ -128,16 +130,54 @@ export default function GoogleMap({ hotspots }) {
         infoWindow.open(map, marker);
       });
 
-      return marker;
+      allMarkers.push(marker);
     });
 
-    setMarkers(newMarkers);
+    // Create request markers
+    requests.forEach((req) => {
+      const marker = new window.google.maps.Marker({
+        position: { lat: req.latitude, lng: req.longitude },
+        map: map,
+        title: `${req.eventType} Request`,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: req.status === 'pending' ? '#EAB308' : req.status === 'approved' ? '#10B981' : '#3B82F6',
+          fillOpacity: 0.8,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+      });
+
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="color: black; padding: 10px;">
+            <strong>${req.eventType}</strong><br/>
+            <span style="color: ${req.status === 'pending' ? '#EAB308' : req.status === 'approved' ? '#10B981' : '#3B82F6'};">Status: ${req.status}</span><br/>
+            ${req.description}<br/>
+            Location: ${req.latitude.toFixed(4)}, ${req.longitude.toFixed(4)}<br/>
+            ${req.address ? `Address: ${req.address}` : ''}
+          </div>
+        `,
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
+      allMarkers.push(marker);
+    });
+
+    setMarkers(allMarkers);
 
     // Fit bounds to show all markers
-    if (newMarkers.length > 0) {
+    if (allMarkers.length > 0) {
       const bounds = new window.google.maps.LatLngBounds();
       hotspots.forEach(hotspot => {
         bounds.extend({ lat: hotspot.latitude, lng: hotspot.longitude });
+      });
+      requests.forEach(req => {
+        bounds.extend({ lat: req.latitude, lng: req.longitude });
       });
       map.fitBounds(bounds);
     }
