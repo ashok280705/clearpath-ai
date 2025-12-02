@@ -83,6 +83,14 @@ export default function DashboardLayout({ children }) {
             >
               🎁 Rewards
             </button>
+            <button
+              onClick={() => router.push('/dashboard/simulation')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 ${
+                pathname === '/dashboard/simulation' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              🏙️ City Simulation
+            </button>
           </nav>
         </aside>
         <main className="flex-1 p-8">
